@@ -1,0 +1,30 @@
+{
+  "devDependencies": {
+    "fs-jetpack": "^0.7.0",
+    "gulp": "^3.9.0",
+    "gulp-less": "^3.0.3",
+    "gulp-sass": "*",
+    "gulp-util": "^3.0.6",
+    "vinyl-source-stream":"*",
+    "browserify":"*",
+    "watchify":"*",
+    "reactify":"*",
+    "gulp-concat":"*",
+    "q": "^1.4.1",
+    "rollup": "^0.21.0",
+    "yargs": "^3.15.0",
+    "express":"*"
+  },
+  "name": "web-stopcopyingyourtables",
+  "version": "1.0.0",
+  "description": "Stop copying your tabled!! Damn!",
+  "main": "index.js",
+  "keywords": [
+    "table",
+    "extractor",
+    "no-more-copy",
+    "excel"
+  ],
+  "author": "Artemis Mucaj and Jean-Baptiste Assouad",
+  "license": "MIT"
+}

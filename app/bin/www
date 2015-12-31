@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('app:server');
+var http = require('http');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+// socket.io
+var io = require('socket.io')(server);
+// instantiate zmq talkers
+var zmq = require('zmq');
+
+var subscriber = zmq.socket('sub');
+var subscriber_csv = zmq.socket('sub');
+var publisher = zmq.socket('pub');
+
+var publisher_csv = zmq.socket('pub');
+
+publisher.bind('tcp://127.0.0.1:5555')
+publisher_csv.bind('tcp://127.0.0.1:5557')
+
+subscriber.connect('tcp://127.0.0.1:5556')
+subscriber.subscribe('')
+subscriber_csv.connect('tcp://127.0.0.1:5558')
+subscriber_csv.subscribe('')
+
+subscriber.on('message', function(reply) {
+  // content boxes here
+  msg = reply.toString();
+  message = JSON.parse(msg);
+  // console.log("send to : "+message["socketID"]);
+  // emit message
+  io.sockets.connected[message["socketID"]].emit('contentBox', message["contentBoxes"]);
+  //console.log('Received message: ', reply.toString());
+})
+
+subscriber_csv.on('message', function(reply) {
+  console.log("message recu ... csv")
+  // content boxes here
+  fs = require("fs");
+  // work with file
+  msg = reply.toString();
+  message = JSON.parse(msg);
+  // console.log("send to : "+message["socketID"]);
+  // emit message
+  filepath =(message["csv"]["csv_filepath"])
+  fs.readFile(filepath.replace('../','./'), function (err, data) {
+     if (err) {
+         return console.error(err);
+     }
+     initialData = data.toString().split("\n");
+     for (var i = 0; i < initialData.length; i++) {
+       initialData[i] = initialData[i].split(";");
+     }
+     io.sockets.connected[message["socketID"]].emit('csvFilepath', initialData);
+     // console.log("Asynchronous read: " + data.toString());
+  });
+  // io.sockets.connected[message["socketID"]].emit('csvFilepath', message["csv"]);
+  //console.log('Received message: ', reply.toString());
+})
+
+// socket on 'requestContentBox'
+io.on('connection', function(socket){
+  console.log(socket.id)
+
+  socket.on('requestContentBox', function(msg){
+    publisher.send(msg);
+  });
+
+  socket.on('requestCsv', function(msg){
+    publisher_csv.send(msg);
+  });
+
+});
